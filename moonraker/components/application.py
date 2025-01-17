@@ -55,7 +55,7 @@ if TYPE_CHECKING:
     from tornado.httputil import HTTPMessageDelegate, HTTPServerRequest
     from ..server import Server
     from ..eventloop import EventLoop
-    from ..confighelper import ConfigHelper
+    from ..confighelper import ConfigHelper, AIConfig
     from ..common import UserInfo
     from .klippy_connection import KlippyConnection as Klippy
     from ..utils import IPAddress
@@ -202,6 +202,17 @@ class MoonrakerApp:
         ]
         self.max_upload_size = config.getint('max_upload_size', 1024)
         self.max_upload_size *= 1024 * 1024
+
+        # Initialize AI configuration
+        from ..confighelper import AIConfig
+        self.ai_config: Optional[AIConfig] = None
+        ai_cfg = config.get_section('ai')
+        if ai_cfg is not None:
+            self.ai_config = AIConfig(ai_cfg)
+            logging.info(
+                f"AI Configuration Loaded - Base URL: {self.ai_config.base_url}, "
+                f"Snapshot Path: {self.ai_config.snapshot_path}"
+            )
 
         # SSL config
         self.cert_path: pathlib.Path = self._get_path_option(

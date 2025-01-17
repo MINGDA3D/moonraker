@@ -1124,3 +1124,66 @@ def find_config_backup(cfg_path: str) -> Optional[str]:
     if backup.is_file():
         return str(backup)
     return None
+
+class AIConfig:
+    """Configuration wrapper for AI functionality
+    
+    This class manages configuration for the AI detection feature,
+    including server URLs, file paths and timeouts.
+    """
+    def __init__(self, config: ConfigHelper) -> None:
+        self.server: Server = config.get_server()
+        
+        # Read base URL
+        self.base_url: str = config.get('base_url', "http://61.188.144.241:5000")
+        if not self.base_url.startswith(('http://', 'https://')):
+            raise config.error("base_url must start with http:// or https://")
+            
+        # Setup snapshot directory with path expansion
+        default_path = os.path.expanduser("~/printer_data/ai_snapshots")
+        self.snapshot_path: str = os.path.expanduser(
+            config.get('snapshot_path', default_path)
+        )
+        
+        # Create snapshot directory if it doesn't exist
+        if not os.path.exists(self.snapshot_path):
+            try:
+                os.makedirs(self.snapshot_path, exist_ok=True)
+            except OSError:
+                raise config.error(
+                    f"Unable to create snapshot directory: {self.snapshot_path}"
+                )
+        
+        # Verify directory permissions
+        if not os.access(self.snapshot_path, os.W_OK):
+            raise config.error(
+                f"No write permission for snapshot directory: {self.snapshot_path}"
+            )
+        
+        # Configure timeout
+        self.upload_timeout: float = config.getfloat('upload_timeout', 30.0)
+        if not 0 < self.upload_timeout <= 300:
+            raise config.error(
+                "upload_timeout must be between 0 and 300 seconds"
+            )
+
+    def get_callback_url(self) -> str:
+        """Generate the callback URL for AI service
+        
+        Returns:
+            str: The fully qualified callback URL
+        """
+        return f"{self.server.get_host_info()['address']}/api/v1/ai/callback"
+
+    def as_dict(self) -> Dict[str, Any]:
+        """Get the current configuration as a dictionary
+        
+        Returns:
+            Dict[str, Any]: The current configuration values
+        """
+        return {
+            'base_url': self.base_url,
+            'snapshot_path': self.snapshot_path,
+            'upload_timeout': self.upload_timeout,
+            'callback_url': self.get_callback_url()
+        }
