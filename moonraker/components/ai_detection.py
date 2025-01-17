@@ -15,38 +15,50 @@ if TYPE_CHECKING:
 
 class AiDetection:
     def __init__(self, config: ConfigHelper) -> None:
-        self.server = config.get_server()
-        app = self.server.lookup_component("application")
-        self.ai_config: Optional[AIConfig] = app.ai_config
-        if self.ai_config is None:
-            try:
-                ai_cfg = config.getsection('ai')
-                if ai_cfg is not None:
-                    self.ai_config = AIConfig(ai_cfg)
-            except config.error:
-                raise config.error(
-                    "[ai] section not found in configuration"
-                )
-        
-        # 注册API端点
-        self.server.register_endpoint(
-            "/api/v1/device/print/image", ['POST'], 
-            self._handle_image_upload,
-            auth_required=True
-        )
-        self.server.register_endpoint(
-            "/api/v1/predict", ['POST'],
-            self._handle_predict,
-            auth_required=True
-        )
+        try:
+            self.server = config.get_server()
+            logging.info("AI Detection: Initializing...")
+            
+            app = self.server.lookup_component("application")
+            self.ai_config: Optional[AIConfig] = app.ai_config
+            logging.info(f"AI Detection: Got AI config: {self.ai_config}")
+            
+            if self.ai_config is None:
+                try:
+                    ai_cfg = config.getsection('ai')
+                    if ai_cfg is not None:
+                        self.ai_config = AIConfig(ai_cfg)
+                        logging.info("AI Detection: Created new AI config")
+                except config.error as e:
+                    logging.error(f"AI Detection: Config error - {str(e)}")
+                    raise config.error(
+                        "[ai] section not found in configuration"
+                    )
+            
+            # 注册API端点
+            logging.info("AI Detection: Registering endpoints...")
+            self.server.register_endpoint(
+                "/api/v1/device/print/image", ['POST'], 
+                self._handle_image_upload,
+                auth_required=True
+            )
+            self.server.register_endpoint(
+                "/api/v1/predict", ['POST'],
+                self._handle_predict,
+                auth_required=True
+            )
 
-        # 注册G-code命令处理器
-        self.server.register_event_handler(
-            "server:klippy_ready", self._handle_klippy_ready
-        )
-        self.server.register_event_handler(
-            "server:klippy_shutdown", self._handle_klippy_shutdown
-        )
+            # 注册G-code命令处理器
+            self.server.register_event_handler(
+                "server:klippy_ready", self._handle_klippy_ready
+            )
+            self.server.register_event_handler(
+                "server:klippy_shutdown", self._handle_klippy_shutdown
+            )
+
+        except Exception as e:
+            logging.exception("AI Detection: Initialization failed")
+            raise
 
     async def _handle_klippy_ready(self) -> None:
         """当Klippy准备就绪时注册命令"""
