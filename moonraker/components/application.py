@@ -36,6 +36,7 @@ from ..common import (
 from ..utils import json_wrapper as jsonw
 from streaming_form_data import StreamingFormDataParser, ParseFailedException
 from streaming_form_data.targets import FileTarget, ValueTarget, SHA256Target
+from ..confighelper import AIConfig
 
 # Annotation imports
 from typing import (
