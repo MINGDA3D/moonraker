@@ -204,15 +204,17 @@ class MoonrakerApp:
         self.max_upload_size *= 1024 * 1024
 
         # Initialize AI configuration
-        from ..confighelper import AIConfig
         self.ai_config: Optional[AIConfig] = None
-        ai_cfg = config.get_section('ai')
-        if ai_cfg is not None:
-            self.ai_config = AIConfig(ai_cfg)
-            logging.info(
-                f"AI Configuration Loaded - Base URL: {self.ai_config.base_url}, "
-                f"Snapshot Path: {self.ai_config.snapshot_path}"
-            )
+        try:
+            ai_cfg = config.getsection('ai')
+            if ai_cfg is not None:
+                self.ai_config = AIConfig(ai_cfg)
+                logging.info(
+                    f"AI Configuration Loaded - Base URL: {self.ai_config.base_url}, "
+                    f"Snapshot Path: {self.ai_config.snapshot_path}"
+                )
+        except config.error:
+            logging.info("No [ai] section found in config")
 
         # SSL config
         self.cert_path: pathlib.Path = self._get_path_option(

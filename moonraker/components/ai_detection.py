@@ -19,9 +19,14 @@ class AiDetection:
         app = self.server.lookup_component("application")
         self.ai_config: Optional[AIConfig] = app.ai_config
         if self.ai_config is None:
-            raise config.error(
-                "[ai] section not found in configuration"
-            )
+            try:
+                ai_cfg = config.getsection('ai')
+                if ai_cfg is not None:
+                    self.ai_config = AIConfig(ai_cfg)
+            except config.error:
+                raise config.error(
+                    "[ai] section not found in configuration"
+                )
         
         # 注册API端点
         self.server.register_endpoint(
